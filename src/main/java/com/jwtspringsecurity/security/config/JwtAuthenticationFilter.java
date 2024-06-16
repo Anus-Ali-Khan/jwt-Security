@@ -6,9 +6,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -36,11 +38,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request,response);
             return;
         }
-        jwt = authHeader.substring(7); // extracting token value due to bearer it starts from 7 index
+        jwt = authHeader.substring(7); // extracting token value but due to bearer it starts from 7 index
         userEmail = jwtService.extractUsername(jwt); // extracting the userEmail from JWT token
-        // Checking if user is present in db or not
+        // When user is present and not authenticated, so we Check if user is present in db or not
         if(userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null){
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
+            if(jwtService.isTokenValid(jwt,userDetails)){
+                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                        userDetails,
+                        null,
+                        userDetails.getAuthorities()
+                );
+                authToken.setDetails(
+                        new WebAuthenticationDetailsSource().buildDetails(request)
+                );
+                //updating our security context holder with user and its token
+                SecurityContextHolder.getContext().setAuthentication(authToken);
+            }
         }
+        //this will pass the auth process to next filter
+        filterChain.doFilter(request,response);
     }
 }
