@@ -29,7 +29,7 @@ public class SecurityConfiguration {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests((authz) -> authz
-                        .requestMatchers("") // Here we pass those endpoints which do not require any authorization
+                        .requestMatchers("/api/v1/auth/**") // Here we pass those endpoints which do not require any authorization
                         .permitAll()
                         .anyRequest()
                         .authenticated()
